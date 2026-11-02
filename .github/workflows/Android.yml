@@ -1,5 +1,5 @@
 name: Android APK Build
-"esbuild": "^0.28.0"
+
 on:
   push:
   workflow_dispatch:
@@ -15,26 +15,37 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 18
+          node-version: 22
 
-      - - name: Install Dependencies
-  run: npm install --legacy-peer-deps
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Install Dependencies
+        run: npm install
+
+      - name: Build Web App
+        run: npm run build
+
+      - name: Add Android platform (if missing)
+        run: |
+          if [ ! -d android ]; then
+            npx cap add android
+          fi
+
+      - name: Sync Capacitor
+        run: npx cap sync android
 
       - name: Build APK
-         run: |
-          npm install -g @capacitor/cli
-          npx cap sync android
-          cd android
+        working-directory: android
+        run: |
+          chmod +x ./gradlew
           ./gradlew assembleDebug
-   node-version: 22
+
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: app-debug.apk
           path: android/app/build/outputs/apk/debug/app-debug.apk
-   npm i @capacitor/core @capacitor/android
-   npm i -D @capacitor/cli
-   npx cap init
-   npx cap add android
-   npm run build
-   npx cap sync android
