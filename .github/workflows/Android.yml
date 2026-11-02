@@ -1,5 +1,5 @@
 name: Android APK Build
-
+"esbuild": "^0.28.0"
 on:
   push:
   workflow_dispatch:
@@ -17,18 +17,24 @@ jobs:
         with:
           node-version: 18
 
-      - name: Install Dependencies
-        run: npm install
+      - - name: Install Dependencies
+  run: npm install --legacy-peer-deps
 
       - name: Build APK
-        run: |
+         run: |
           npm install -g @capacitor/cli
           npx cap sync android
           cd android
           ./gradlew assembleDebug
-
+   node-version: 22
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: app-debug.apk
           path: android/app/build/outputs/apk/debug/app-debug.apk
+   npm i @capacitor/core @capacitor/android
+   npm i -D @capacitor/cli
+   npx cap init
+   npx cap add android
+   npm run build
+   npx cap sync android
