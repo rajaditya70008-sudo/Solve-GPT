@@ -1,0 +1,6 @@
+{
+  "name": "OmniVision Studio & Problem Solver",
+  "description": "Create AI photos and cinematic videos from text prompts and solve complex real-world problems with Google Search grounded multi-turn Gemini reasoning.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
