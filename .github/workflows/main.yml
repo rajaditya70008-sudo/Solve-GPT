@@ -1,0 +1,84 @@
+name: Android APK Build (Safe)
+
+on:
+  push:
+  workflow_dispatch:
+
+# Naya push purane running build ko cancel nahi karega
+concurrency:
+  group: android-build-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      # Purani package.json me bhi conflict na aaye
+      - name: Fix package.json
+        run: |
+          npm pkg delete devDependencies.esbuild || true
+          npm pkg set dependencies.@capacitor/core="^7.0.0"
+          npm pkg set dependencies.@capacitor/android="^7.0.0"
+          npm pkg set devDependencies.@capacitor/cli="^7.0.0"
+
+      - name: Install Dependencies
+        run: |
+          rm -f package-lock.json
+          npm install --legacy-peer-deps --no-audit --no-fund
+
+      - name: Build Web App
+        run: npm run build
+
+      - name: Capacitor config (if missing)
+        run: |
+          if [ ! -f capacitor.config.json ] && [ ! -f capacitor.config.ts ]; then
+            echo '{"appId":"com.solvegpt.app","appName":"Solve GPT","webDir":"dist"}' > capacitor.config.json
+          fi
+
+      - name: Add Android platform (if missing)
+        run: |
+          if [ ! -d android ]; then
+            npx cap add android
+          fi
+
+      - name: Sync Capacitor
+        run: npx cap sync android
+
+      - name: Build APK
+        working-directory: android
+        run: |
+          chmod +x ./gradlew
+          ./gradlew assembleDebug --no-daemon --stacktrace
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-debug.apk
+          path: android/app/build/outputs/apk/debug/app-debug.apk
+
+      # Fail ho to npm logs download karne ke liye
+      - name: Upload logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: debug-logs
+          path: |
+            ~/.npm/_logs/
+            android/app/build/reports/
+          if-no-files-found: ignore
